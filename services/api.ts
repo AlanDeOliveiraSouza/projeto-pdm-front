@@ -5,7 +5,7 @@ export const api = {
     
     // Não precisa do id, o back gera um ao cadastrar
     cadastrar: (dados: Omit<Conhecido, 'id'>) => {
-        return req.post("conhecidos", dados);
+        return req.post("conhecidos/cadastrar", dados);
     },
 
     listar: () => {
