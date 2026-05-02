@@ -1,12 +1,13 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { api } from "@/services/api";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Alert, Pressable, StyleSheet, Text, TextInput } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput } from "react-native";
 import * as yup from "yup";
+import { useConhecido } from "./hooks/useConhecido";
+import { useEditConhecido } from "./hooks/useEditConhecido";
 
 const schema = yup.object({
     nome: yup
@@ -20,7 +21,7 @@ const schema = yup.object({
         .test(
             "is-number", 
             "Idade inválida",
-            (value) => !isNaN(parseInt(value as string)),
+            (value) => !isNaN(parseInt(value as string)) || (value == null),
         ),
     dataConheceu: yup
         .string()
@@ -56,7 +57,18 @@ const calcularAnosConhece = (data: string): number => {
 const formatarDataParaISO = (data: string): string => {
     const [dia, mes, ano] = data.split('/').map(Number);
 
-    const dataFormatada = `${ano}-${mes}-${dia}`;
+    let dataFormatada;
+
+    if(dia < 10 && mes < 10) {
+        dataFormatada = `${ano}-0${mes}-0${dia}`;
+    } else if(dia < 10 ) {
+        dataFormatada = `${ano}-${mes}-0${dia}`;
+    } else if(mes < 10 ) {
+        dataFormatada = `${ano}-0${mes}-${dia}`;
+    } else {
+        dataFormatada = `${ano}-${mes}-${dia}`;
+    }
+
     return dataFormatada;
 }
 
@@ -79,13 +91,22 @@ const formatarDataParaBR = (data: string): string => {
 
 export default function ConhecidoEditScreen() {
 
-    const { id } = useLocalSearchParams();
     const router = useRouter();
+
+    const { id } = useLocalSearchParams();
+
+    const { mutate } = useEditConhecido();
+
+    const {
+        data: conhecido,
+        isLoading,
+        error,
+        refetch,
+    } = useConhecido(id as string);
     
     const {
         control,
         handleSubmit,
-        setValue,
         formState: { errors },
         reset
     } = useForm({
@@ -93,46 +114,55 @@ export default function ConhecidoEditScreen() {
     });
 
     useEffect(() => {
-        const carregarDados = async () => {
-            try {
-                const response = await api.buscar(id as string);
-                const conhecido = response.data;
-
-                setValue("nome", conhecido.nome);
-                setValue("idade", conhecido.idade.toString());
-                setValue("dataConheceu", formatarDataParaBR(conhecido.dataConheceu));
-                setValue("ocasiao", conhecido.ocasiao);
-                setValue("genero", conhecido.genero);
-            } catch(error) {
-                Alert.alert("Erro", "Não foi possível carregar os dados.");
-                router.push("/(tabs)");
-            }
-        };
-        carregarDados()
-    }, [id]);
+        if (conhecido) {
+            reset({
+                nome: conhecido.nome,
+                idade: conhecido.idade.toString(),
+                dataConheceu: formatarDataParaBR(conhecido.dataConheceu),
+                ocasiao: conhecido.ocasiao,
+                genero: conhecido.genero,
+            });
+        }
+    }, [conhecido, reset]);
 
     const onSubmit = async (data: any) => {
-            try {
-                const dados = {
-                    id: data.id,
-                    nome: data.nome,
-                    idade: parseInt(data.idade),
-                    dataConheceu: formatarDataParaISO(data.dataConheceu),
-                    anosConhece: calcularAnosConhece(data.dataConheceu),
-                    ocasiao: data.ocasiao,
-                    genero: data.genero,
-                }
-                await api.editar(dados);
-                Alert.alert("Sucesso", "Conhecido atualizado!");
-                reset();
-                router.push("/(tabs)");
-            } catch(error) {
-                console.error(error);
-                Alert.alert("Erro", "Não foi possível atualizar.");
-            }
-        };
+        if (!conhecido) return;
+
+        mutate({
+            id: conhecido.id,
+            nome: data.nome,
+            idade: parseInt(data.idade),
+            dataConheceu: formatarDataParaISO(data.dataConheceu),
+            anosConhece: calcularAnosConhece(data.dataConheceu),
+            ocasiao: data.ocasiao,
+            genero: data.genero,
+        });
+    }
+
+    if(isLoading) {
+        return (
+        <ThemedView style={estilo.pagina}>
+            <ThemedText type="subtitle"style={estilo.subtitulo}>Carregando dados...</ThemedText>
+        </ThemedView>
+        )
+    }
+
+    if(error || !conhecido) {
+        return (
+        <ThemedView style={estilo.pagina}>
+            <ThemedText type="subtitle"style={estilo.subtitulo}>Não foi possível carregar os dados: </ThemedText>
+            <Pressable
+                style={estilo.botao}
+                onPress={() => refetch()}
+            >
+                <Text style={estilo.textoBotao}>Recarregar</Text>
+            </Pressable>
+        </ThemedView>
+        )
+    }
 
     return (
+
         <ThemedView style={estilo.pagina}>
 
             <ThemedText type="subtitle" style={estilo.subtitulo}>Editar conhecido n° {id}</ThemedText>
@@ -230,7 +260,7 @@ export default function ConhecidoEditScreen() {
                     {errors.genero && <Text style={estilo.erro}>{errors.genero.message}</Text>}
                 </ThemedView>
                 
-                <Pressable style={estilo.botao} onPress={handleSubmit(onSubmit)}><Text style={estilo.textoInput}>Salvar</Text></Pressable>
+                <Pressable style={estilo.botao} onPress={handleSubmit(onSubmit)}><Text style={estilo.textoBotao}>Salvar</Text></Pressable>
 
             </ThemedView>
 
@@ -277,6 +307,12 @@ const estilo = StyleSheet.create({
         borderRadius: 5,
         borderWidth: 1,
         borderColor: "rgba(150, 150, 150, 0.1)",
+    },
+    textoBotao: {
+        fontSize: 16,
+        textAlign: "center",
+        alignSelf: "center",
+        color: "#fff",
     },
     inputErro: {
         borderColor: "#ff4444",

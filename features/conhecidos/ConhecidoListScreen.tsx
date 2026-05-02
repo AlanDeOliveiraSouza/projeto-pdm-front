@@ -1,59 +1,52 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { api } from "@/services/api";
-import { Conhecido } from "@/types/conhecido";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
-
-const formatarDataParaBR = (data: string): string => {
-    const [ano, mes, dia] = data.split('-').map(Number);
-    let dataFormatada;
-
-    if(dia < 10 && mes < 10) {
-        dataFormatada = `0${dia}/0${mes}/${ano}`;
-    } else if(dia < 10 ) {
-        dataFormatada = `0${dia}/${mes}/${ano}`;
-    } else if(mes < 10 ) {
-        dataFormatada = `${dia}/0${mes}/${ano}`;
-    } else {
-        dataFormatada = `${dia}/${mes}/${ano}`;
-    }
-
-    return dataFormatada;
-}
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { formatarDataParaBR } from "./hooks/useConhecidoCalculos";
+import { useConhecidos } from "./hooks/useConhecidos";
 
 export default function ConhecidoListScreen() {
     
     const router = useRouter();
 
-    const [conhecidos, setConhecidos] = useState<Conhecido[]>([]);
-    const [carregando, setCarregando] = useState(true);
+    const {
+        data: listaConhecidos,
+        isLoading,
+        error,
+        refetch,
+    } = useConhecidos();
+
+    if(isLoading) {
+        return (
+        <ThemedView style={estilo.pagina}>
+            <ThemedText type="title" style={estilo.titulo}>Conhecidos</ThemedText>
+            <ThemedText type="subtitle"style={estilo.subtitulo}>Carregando conhecidos...</ThemedText>
+        </ThemedView>
+        )
+    }
+
+    if(error) {
+        return (
+        <ThemedView style={estilo.pagina}>
+            <ThemedText type="title" style={estilo.titulo}>Conhecidos</ThemedText>
+            <ThemedText type="subtitle"style={estilo.subtitulo}>Não foi possível carregar os conhecidos: </ThemedText>
+            <Pressable
+                style={estilo.botao}
+                onPress={() => refetch()}
+            >
+                <Text style={estilo.textoBotao}>Recarregar</Text>
+            </Pressable>
+        </ThemedView>
+        )
+    }
     
-    
-    useEffect(() => {carregarDados()}, []);
-    
-    const carregarDados = async () => {
-        try {
-            setCarregando(true);
-            const response = await api.listar();
-            setConhecidos(response.data);
-        } catch (error) {
-            Alert.alert("Erro", "Não foi possível carregar os dados.");
-        } finally {
-            setCarregando(false);
-        }
-    };
-    
+    /*
     const listaConhecidos = [
-        { id: 21, nome: "Yasmin", idade: 12, dataConheceu: "2013-12-01", ocasiao: "No dia em que nasceu conheci minha irmã.", anosConhece: 12, genero: 'Feminino'},
+        { id: 2, nome: "Yasmin", idade: 12, dataConheceu: "2013-12-01", ocasiao: "No dia em que nasceu conheci minha irmã.", anosConhece: 12, genero: 'Feminino'},
         { id: 22, nome: "Alessandra", idade: 50, dataConheceu: "2006-04-24", ocasiao: "No dia em que eu nasci conheci a minha mãe.", anosConhece: 20, genero: 'Feminino'},
         { id: 23, nome: "Jose", idade: 52, dataConheceu: "2006-04-24", ocasiao: "No dia em que eu nasci conheci o meu pai.", anosConhece: 20, genero: 'Masculino'},
-    ];
-
-    const [dados] = useState<Conhecido[]>([
-        ...conhecidos, ...listaConhecidos,
-    ])
+    ];*/
     
     return (
         <ThemedView style={estilo.pagina}>
@@ -61,7 +54,7 @@ export default function ConhecidoListScreen() {
                 <ThemedText type="subtitle"style={estilo.subtitulo}>Meus conhecidos:</ThemedText>
                 <FlatList
                     style={estilo.lista}
-                    data={dados}
+                    data={listaConhecidos}
                     keyExtractor={(item) => item.id.toString()}
                     renderItem={({item}) => (
                         <ThemedView style={estilo.card}>
@@ -70,19 +63,22 @@ export default function ConhecidoListScreen() {
                                 <ThemedText style={estilo.dado}>ID: {item.id}</ThemedText>
                                 <ThemedText style={estilo.dado}>{item.idade} anos • Conhece há {item.anosConhece} anos</ThemedText>
                                 <ThemedText style={estilo.dado}>Data que conheceu: {formatarDataParaBR(item.dataConheceu)}</ThemedText>
+                                <ThemedText style={estilo.dado}>Como conheceu: {item.ocasiao}</ThemedText>
+                                <ThemedText style={estilo.dado}>Gênero: {item.genero}</ThemedText>
                             </View>
                             <View style={estilo.botoes}>
                                 <Pressable
                                     style={estilo.botao}
                                     onPress={() => router.push(`/conhecido/edit/${item.id}`)}
+                                    
                                 >
-                                    <Text style={estilo.textoBotao}>Editar</Text>
+                                    <IconSymbol size={28} name="pencil" color={'#fff'} />
                                 </Pressable>
                                 <Pressable
                                     style={estilo.botao}
                                     onPress={() => router.push(`/conhecido/delete/${item.id}`)}
                                 >
-                                    <Text style={estilo.textoBotao}>Excluir</Text>
+                                    <IconSymbol size={28} name="trash" color={'#fff'} />
                                 </Pressable>
                             </View>
                         </ThemedView>
@@ -141,7 +137,7 @@ const estilo = StyleSheet.create({
         flex: 1,
         display: "flex",
         width: 60,
-        height: 40,
+        height: 60,
         backgroundColor:"#0a7ea4",
         borderRadius: 5,
         justifyContent: "center",

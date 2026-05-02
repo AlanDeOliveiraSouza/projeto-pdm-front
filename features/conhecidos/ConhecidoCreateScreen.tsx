@@ -1,11 +1,13 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { api } from "@/services/api";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput } from "react-native";
 import * as yup from "yup";
+import { calcularAnosConhece, formatarDataParaISO } from "./hooks/useConhecidoCalculos";
+import { useCreateConhecido } from "./hooks/useCreateConhecido";
 
 const schema = yup.object({
     nome: yup
@@ -39,31 +41,6 @@ const schema = yup.object({
         ),
 }).required();
 
-const calcularAnosConhece = (data: string): number => {
-    const [dia, mes, ano] = data.split('/').map(Number);
-    if (!dia || !mes || !ano) return 0;
-
-    const dataInicio = new Date(ano, mes - 1, dia);
-    const hoje = new Date();
- 
-    let anos = hoje.getFullYear() - dataInicio.getFullYear();
-    const m = hoje.getMonth() - dataInicio.getMonth();
- 
-    // Ajuste se o aniversário do conhecimento ainda não chegou no ano atual
-    if (m < 0 || (m === 0 && hoje.getDate() < dataInicio.getDate())) {
-        anos--;
-    }
-
-    return anos >= 0 ? anos : 0;
-};
-
-const formatarDataParaISO = (data: string): string => {
-    const [dia, mes, ano] = data.split('/').map(Number);
-
-    const dataFormatada = `${ano}-${mes}-${dia}`;
-    return dataFormatada;
-}
-
 export default function ConhecidoCreateScreen() {
 
     const router = useRouter();
@@ -77,30 +54,32 @@ export default function ConhecidoCreateScreen() {
         resolver: yupResolver(schema),
         defaultValues: {
             nome: "",
+            idade: "",
             dataConheceu: "",
             ocasiao: "",
             genero: "",
         }
     });
 
-    const onSubmit = async (data: any) => {
-        try {
-            const dados = {
-                nome: data.nome,
-                idade: parseInt(data.idade),
-                dataConheceu: formatarDataParaISO(data.dataConheceu),
-                anosConhece: calcularAnosConhece(data.dataConheceu),
-                ocasiao: data.ocasiao,
-                genero: data.genero,
-            }
-            await api.cadastrar(dados);
-            Alert.alert("Sucesso", "Conhecido cadastrado!");
-            reset();
-            router.push("/(tabs)");
-        } catch(error) {
-            console.error(error);
-            Alert.alert("Erro", "Não foi possível salvar.");
-        }
+    const { mutate } = useCreateConhecido();
+
+    useFocusEffect(
+        useCallback(()=> {
+            reset(); // Limpa os dados quando o usuário voltar ao formulário
+        }, [reset])
+    );
+
+    const onSubmit = (data: any) => {
+        
+        mutate({
+            nome: data.nome,
+            idade: parseInt(data.idade),
+            dataConheceu: formatarDataParaISO(data.dataConheceu),
+            anosConhece: calcularAnosConhece(data.dataConheceu),
+            ocasiao: data.ocasiao,
+            genero: data.genero,
+        })
+    
     };
 
     return (
@@ -204,7 +183,7 @@ export default function ConhecidoCreateScreen() {
                         {errors.genero && <Text style={estilo.erro}>{errors.genero.message}</Text>}
                     </ThemedView>
                     
-                    <Pressable style={estilo.botao} onPress={handleSubmit(onSubmit)}><Text style={estilo.textoInput}>Salvar</Text></Pressable>
+                    <Pressable style={estilo.botao} onPress={handleSubmit(onSubmit)}><Text style={estilo.textoBotao}>Salvar</Text></Pressable>
 
                 </ThemedView>
 
@@ -257,6 +236,12 @@ const estilo = StyleSheet.create({
         borderRadius: 5,
         borderWidth: 1,
         borderColor: "rgba(150, 150, 150, 0.1)",
+    },
+    textoBotao: {
+        fontSize: 16,
+        textAlign: "center",
+        alignSelf: "center",
+        color: "#fff",
     },
     inputErro: {
         borderColor: "#ff4444",

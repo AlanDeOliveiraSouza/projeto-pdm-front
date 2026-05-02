@@ -1,7 +1,15 @@
-import { req } from "@/libs/req";
-import { Conhecido } from "@/types/conhecido";
+import { baseURL } from "@/config";
+import axios from "axios";
 
-export const api = {
+const api = axios.create({
+    headers: { 'Content-Type': 'Application/json' },
+    baseURL: baseURL,
+    timeout: 100000
+});
+
+export default api;
+
+/* {
     
     // Não precisa do id, o back gera um ao cadastrar
     cadastrar: (dados: Omit<Conhecido, 'id'>) => {
@@ -23,4 +31,4 @@ export const api = {
     excluir: (id: string) => {
         return req.delete(`conhecidos/${id}`);
     }
-};
+};*/
