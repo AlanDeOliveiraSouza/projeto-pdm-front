@@ -1,12 +1,14 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { yupResolver } from "@hookform/resolvers/yup";
+import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import * as yup from "yup";
-import { calcularAnosConhece, formatarDataParaISO } from "./hooks/useConhecidoCalculos";
+import TirarFoto from "../camera/TirarFotoScreen";
+import { formatarDataParaISO } from "./hooks/useConhecidoCalculos";
 import { useCreateConhecido } from "./hooks/useCreateConhecido";
 
 const schema = yup.object({
@@ -44,6 +46,9 @@ const schema = yup.object({
 export default function ConhecidoCreateScreen() {
 
     const router = useRouter();
+    const [urifoto, setUrifoto] = useState("");
+    const [base64, setBase64] = useState("");
+    const [location, setLocation] = useState<{ latitude: number; longitude: number; altitude: number | null; precisao: number | null } | null>(null);
 
     const {
         control,
@@ -66,18 +71,31 @@ export default function ConhecidoCreateScreen() {
     useFocusEffect(
         useCallback(()=> {
             reset(); // Limpa os dados quando o usuário voltar ao formulário
+            setUrifoto("");
+            setBase64("");
+            setLocation(null);
         }, [reset])
     );
 
     const onSubmit = (data: any) => {
-        
+        if (!base64 || base64 === "Não gerado" || base64 === "") {
+            Alert.alert("Foto obrigatória", "Por favor, tire uma foto para realizar o cadastro.");
+            return;
+        }
+
         mutate({
             nome: data.nome,
             idade: parseInt(data.idade),
             dataConheceu: formatarDataParaISO(data.dataConheceu),
-            anosConhece: calcularAnosConhece(data.dataConheceu),
             ocasiao: data.ocasiao,
             genero: data.genero,
+            imagem: base64,
+            coordenada: location ? {
+                latitude: location.latitude,
+                longitude: location.longitude,
+                altitude: location.altitude,
+                precisao: location.precisao
+            } : undefined
         })
     
     };
@@ -88,7 +106,22 @@ export default function ConhecidoCreateScreen() {
             <ScrollView showsVerticalScrollIndicator={false}>
 
                 <ThemedText type="title" style={estilo.titulo}>Cadastrar conhecido</ThemedText>
-                <ThemedText type="subtitle"style={estilo.subtitulo}>Insira os dados necessários:</ThemedText>
+                
+                <ThemedView style={estilo.secaoCamera}>
+                    <ThemedText type="subtitle" style={estilo.subtitulo}>Foto do conhecido:</ThemedText>
+                    {urifoto ? (
+                        <View style={estilo.contanerPrevisu}>
+                            <Image source={{ uri: urifoto }} style={estilo.previsuImagem} />
+                            <Pressable style={estilo.botaoTrocarFoto} onPress={() => {setUrifoto(""); setBase64(""); setLocation(null);}}>
+                                <Text style={estilo.textoBotaoTrocar}>Trocar Foto</Text>
+                            </Pressable>
+                        </View>
+                    ) : (
+                        <TirarFoto setURI={setUrifoto} setBase64={setBase64} setLocation={setLocation} />
+                    )}
+                </ThemedView>
+
+                <ThemedText type="subtitle" style={estilo.subtitulo}>Dados pessoais:</ThemedText>
 
                 <ThemedView>
 
@@ -206,6 +239,29 @@ const estilo = StyleSheet.create({
     subtitulo: {
         marginBottom: 15,
     },
+    secaoCamera: {
+        marginBottom: 25,
+    },
+    contanerPrevisu: {
+        width: "100%",
+        alignItems: "center",
+        gap: 10,
+    },
+    previsuImagem: {
+        width: "100%",
+        height: 250,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: "rgba(150, 150, 150, 0.2)",
+    },
+    botaoTrocarFoto: {
+        padding: 10,
+    },
+    textoBotaoTrocar: {
+        color: "#0a7ea4",
+        fontWeight: "bold",
+        textDecorationLine: "underline",
+    },
     caixaInput: {
         paddingBottom: 20,
     },
@@ -236,12 +292,14 @@ const estilo = StyleSheet.create({
         borderRadius: 5,
         borderWidth: 1,
         borderColor: "rgba(150, 150, 150, 0.1)",
+        marginBottom: 30,
     },
     textoBotao: {
         fontSize: 16,
         textAlign: "center",
         alignSelf: "center",
         color: "#fff",
+        fontWeight: "600",
     },
     inputErro: {
         borderColor: "#ff4444",

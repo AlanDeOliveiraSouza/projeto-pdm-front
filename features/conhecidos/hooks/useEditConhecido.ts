@@ -7,7 +7,21 @@ export function useEditConhecido() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (conhecido: {id: number; nome: string; idade: number; dataConheceu: string; anosConhece: number; ocasiao: string; genero: string}) => {
+        mutationFn: async (conhecido: {
+            id: number; 
+            nome: string; 
+            idade: number; 
+            dataConheceu: string; 
+            ocasiao: string; 
+            genero: string; 
+            imagem?: string;
+            coordenada?: {
+                latitude: number;
+                longitude: number;
+                altitude: number | null;
+                precisao: number | null;
+            }
+        }) => {
             const response = await api.put(`/conhecidos`, conhecido);
             console.log("Edição:", response.data);
             return response.data;

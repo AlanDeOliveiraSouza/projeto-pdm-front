@@ -1,8 +1,11 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useConhecido } from "./hooks/useConhecido";
+import { calcularAnosConhece, formatarDataParaBR } from "./hooks/useConhecidoCalculos";
 import { useDeleteConhecido } from "./hooks/useDeleteConhecido";
 
 export default function ConhecidoDeleteScreen() {
@@ -46,8 +49,24 @@ export default function ConhecidoDeleteScreen() {
         <ThemedView style={estilo.pagina}>
             <ThemedText type="subtitle" style={estilo.subtitulo}>Excluir conhecido n° {id}</ThemedText>
             <ThemedText>Tem certeza que deseja apagar {conhecido.nome}?</ThemedText>
+            {conhecido.imagem ? (
+                <Image 
+                    source={{ uri: `data:image/jpeg;base64,${conhecido.imagem}` }} 
+                    style={estilo.fotoMiniatura}
+                />
+            ) : (
+                <View style={[estilo.fotoMiniatura, { justifyContent: 'center', alignItems: 'center' }]}>
+                    <IconSymbol size={32} name="person.fill" color={'#ccc'} />
+                </View>
+            )}
+            <ThemedText type="subtitle" style={estilo.subtitulo}>Coordenadas foto: </ThemedText>
+            <ThemedText style={estilo.dado}>Latitude: {conhecido.coordenada.latitude}</ThemedText>
+            <ThemedText style={estilo.dado}>Longitude: {conhecido.coordenada.longitude}</ThemedText>
+            <ThemedText style={estilo.dado}>Altitude: {conhecido.coordenada.altitude}</ThemedText>
+            <ThemedText style={estilo.dado}>Precisão: {conhecido.coordenada.precisao}</ThemedText>
+            <ThemedText type="subtitle" style={estilo.subtitulo}>Dados: </ThemedText>
             <ThemedText style={estilo.dado}>{conhecido.idade} anos</ThemedText>
-            <ThemedText style={estilo.dado}>Conhece há {conhecido.anosConhece} anos</ThemedText>
+            <ThemedText style={estilo.dado}>Conhece há {calcularAnosConhece(formatarDataParaBR(conhecido.dataConheceu))} anos</ThemedText>
             {/*<ThemedText style={estilo.dado}>Data que conheceu: {formatarDataParaBR(conhecido.dataConheceu)}</ThemedText>*/}
             <ThemedText style={estilo.dado}>Como conheceu: {conhecido.ocasiao}</ThemedText>
             <ThemedText style={estilo.dado}>Gênero: {conhecido.genero}</ThemedText>
@@ -82,6 +101,12 @@ const estilo = StyleSheet.create({
         fontSize: 14,
         opacity: 0.8,
         marginTop: 4,
+    },
+    fotoMiniatura: {
+        width: 300,
+        height: 300,
+        borderRadius: 10,
+        backgroundColor: "rgba(150, 150, 150, 0.1)",
     },
     botoes: {
         flex: 1,

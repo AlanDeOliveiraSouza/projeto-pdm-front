@@ -2,12 +2,14 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Pressable, StyleSheet, Text, TextInput } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image } from "expo-image";
 import * as yup from "yup";
 import { useConhecido } from "./hooks/useConhecido";
 import { useEditConhecido } from "./hooks/useEditConhecido";
+import TirarFoto from "../camera/TirarFotoScreen";
 
 const schema = yup.object({
     nome: yup
@@ -95,6 +97,10 @@ export default function ConhecidoEditScreen() {
 
     const { id } = useLocalSearchParams();
 
+    const [urifoto, setUrifoto] = useState("");
+    const [base64, setBase64] = useState("");
+    const [location, setLocation] = useState<{ latitude: number; longitude: number; altitude: number | null; precisao: number | null } | null>(null);
+
     const { mutate } = useEditConhecido();
 
     const {
@@ -122,6 +128,11 @@ export default function ConhecidoEditScreen() {
                 ocasiao: conhecido.ocasiao,
                 genero: conhecido.genero,
             });
+            // Mostra a imagem atual se existir
+            if (conhecido.imagem) {
+                setUrifoto(`data:image/jpeg;base64,${conhecido.imagem}`);
+                setBase64(conhecido.imagem);
+            }
         }
     }, [conhecido, reset]);
 
@@ -136,6 +147,13 @@ export default function ConhecidoEditScreen() {
             anosConhece: calcularAnosConhece(data.dataConheceu),
             ocasiao: data.ocasiao,
             genero: data.genero,
+            imagem: base64,
+            coordenada: location ? {
+                latitude: location.latitude,
+                longitude: location.longitude,
+                altitude: location.altitude,
+                precisao: location.precisao
+            } : undefined
         });
     }
 
@@ -165,104 +183,122 @@ export default function ConhecidoEditScreen() {
 
         <ThemedView style={estilo.pagina}>
 
-            <ThemedText type="subtitle" style={estilo.subtitulo}>Editar conhecido n° {id}</ThemedText>
+            <ScrollView showsVerticalScrollIndicator={false}>
 
-            <ThemedView>
-            
-                <ThemedView style={estilo.caixaInput}>
-                    <Text style={estilo.textoInput}>Nome</Text>
-                    <Controller
-                        control={control}
-                        name="nome"
-                        render={({ field: { onChange, value } }) => (
-                            <TextInput 
-                                style={[estilo.input, errors.nome && estilo.inputErro]} 
-                                onChangeText={onChange} 
-                                value={value} 
-                                placeholder="Nome completo"
-                                placeholderTextColor="#888"
-                            />
-                        )}
-                    />
-                    {errors.nome && <Text style={estilo.erro}>{errors.nome.message}</Text>}
+                <ThemedText type="subtitle" style={estilo.subtitulo}>Editar conhecido n° {id}</ThemedText>
+
+                <ThemedView style={estilo.secaoCamera}>
+                    <ThemedText type="subtitle" style={estilo.subtituloInterno}>Foto do conhecido:</ThemedText>
+                    {urifoto ? (
+                        <View style={estilo.previewContainer}>
+                            <Image source={{ uri: urifoto }} style={estilo.previewImage} />
+                            <Pressable style={estilo.botaoTrocarFoto} onPress={() => {setUrifoto(""); setBase64(""); setLocation(null);}}>
+                                <Text style={estilo.textoBotaoTrocar}>Trocar Foto</Text>
+                            </Pressable>
+                        </View>
+                    ) : (
+                        <TirarFoto setURI={setUrifoto} setBase64={setBase64} setLocation={setLocation} />
+                    )}
                 </ThemedView>
 
-                <ThemedView style={estilo.caixaInput}>
-                    <Text style={estilo.textoInput}>Idade</Text>
-                    <Controller
-                        control={control}
-                        name="idade"
-                        render={({ field: { onChange, value } }) => (
-                            <TextInput 
-                                style={[estilo.input, errors.idade && estilo.inputErro]} 
-                                onChangeText={onChange} 
-                                value={value?.toString()}
-                                keyboardType="numeric"
-                                placeholder="Ex: 25"
-                                placeholderTextColor="#888" 
-                            />
-                        )}
-                    />
-                    {errors.idade && <Text style={estilo.erro}>{errors.idade.message}</Text>}
-                </ThemedView>
-
-                <ThemedView style={estilo.caixaInput}>
-                    <Text style={estilo.textoInput}>Data que conheceu</Text>
-                    <Controller
-                        control={control}
-                        name="dataConheceu"
-                        render={({ field: { onChange, value } }) => (
-                            <TextInput 
-                                style={[estilo.input, errors.dataConheceu && estilo.inputErro]} 
-                                onChangeText={onChange} 
-                                value={value}
-                                placeholder="DD/MM/AAAA"
-                                placeholderTextColor="#888"
-                            />
-                        )}
-                    />
-                    {errors.dataConheceu && <Text style={estilo.erro}>{errors.dataConheceu.message}</Text>}
-                </ThemedView>
-
-                <ThemedView style={estilo.caixaInput}>
-                    <Text style={estilo.textoInput}>Como conheceu</Text>
-                    <Controller
-                        control={control}
-                        name="ocasiao"
-                        render={({ field: { onChange, value } }) => (
-                            <TextInput 
-                                style={[estilo.input, errors.ocasiao && estilo.inputErro]} 
-                                onChangeText={onChange} 
-                                value={value}
-                                placeholder="Ex: Na faculdade, No trabalho..."
-                                placeholderTextColor="#888"
-                            />
-                        )}
-                    />
-                    {errors.ocasiao && <Text style={estilo.erro}>{errors.ocasiao.message}</Text>}
-                </ThemedView>
-
-                <ThemedView style={estilo.caixaInput}>
-                    <Text style={estilo.textoInput}>Gênero</Text>
-                    <Controller
-                        control={control}
-                        name="genero"
-                        render={({ field: { onChange, value } }) => (
-                            <TextInput 
-                                style={[estilo.input, errors.genero && estilo.inputErro]} 
-                                onChangeText={onChange} 
-                                value={value} 
-                                placeholder="Masculino / Feminino / Outro"
-                                placeholderTextColor="#888"
-                            />
-                        )}
-                    />
-                    {errors.genero && <Text style={estilo.erro}>{errors.genero.message}</Text>}
-                </ThemedView>
+                <ThemedView>
                 
-                <Pressable style={estilo.botao} onPress={handleSubmit(onSubmit)}><Text style={estilo.textoBotao}>Salvar</Text></Pressable>
+                    <ThemedView style={estilo.caixaInput}>
+                        <Text style={estilo.textoInput}>Nome</Text>
+                        <Controller
+                            control={control}
+                            name="nome"
+                            render={({ field: { onChange, value } }) => (
+                                <TextInput 
+                                    style={[estilo.input, errors.nome && estilo.inputErro]} 
+                                    onChangeText={onChange} 
+                                    value={value} 
+                                    placeholder="Nome completo"
+                                    placeholderTextColor="#888"
+                                />
+                            )}
+                        />
+                        {errors.nome && <Text style={estilo.erro}>{errors.nome.message}</Text>}
+                    </ThemedView>
 
-            </ThemedView>
+                    <ThemedView style={estilo.caixaInput}>
+                        <Text style={estilo.textoInput}>Idade</Text>
+                        <Controller
+                            control={control}
+                            name="idade"
+                            render={({ field: { onChange, value } }) => (
+                                <TextInput 
+                                    style={[estilo.input, errors.idade && estilo.inputErro]} 
+                                    onChangeText={onChange} 
+                                    value={value?.toString()}
+                                    keyboardType="numeric"
+                                    placeholder="Ex: 25"
+                                    placeholderTextColor="#888" 
+                                />
+                            )}
+                        />
+                        {errors.idade && <Text style={estilo.erro}>{errors.idade.message}</Text>}
+                    </ThemedView>
+
+                    <ThemedView style={estilo.caixaInput}>
+                        <Text style={estilo.textoInput}>Data que conheceu</Text>
+                        <Controller
+                            control={control}
+                            name="dataConheceu"
+                            render={({ field: { onChange, value } }) => (
+                                <TextInput 
+                                    style={[estilo.input, errors.dataConheceu && estilo.inputErro]} 
+                                    onChangeText={onChange} 
+                                    value={value}
+                                    placeholder="DD/MM/AAAA"
+                                    placeholderTextColor="#888"
+                                />
+                            )}
+                        />
+                        {errors.dataConheceu && <Text style={estilo.erro}>{errors.dataConheceu.message}</Text>}
+                    </ThemedView>
+
+                    <ThemedView style={estilo.caixaInput}>
+                        <Text style={estilo.textoInput}>Como conheceu</Text>
+                        <Controller
+                            control={control}
+                            name="ocasiao"
+                            render={({ field: { onChange, value } }) => (
+                                <TextInput 
+                                    style={[estilo.input, errors.ocasiao && estilo.inputErro]} 
+                                    onChangeText={onChange} 
+                                    value={value}
+                                    placeholder="Ex: Na faculdade, No trabalho..."
+                                    placeholderTextColor="#888"
+                                />
+                            )}
+                        />
+                        {errors.ocasiao && <Text style={estilo.erro}>{errors.ocasiao.message}</Text>}
+                    </ThemedView>
+
+                    <ThemedView style={estilo.caixaInput}>
+                        <Text style={estilo.textoInput}>Gênero</Text>
+                        <Controller
+                            control={control}
+                            name="genero"
+                            render={({ field: { onChange, value } }) => (
+                                <TextInput 
+                                    style={[estilo.input, errors.genero && estilo.inputErro]} 
+                                    onChangeText={onChange} 
+                                    value={value} 
+                                    placeholder="Masculino / Feminino / Outro"
+                                    placeholderTextColor="#888"
+                                />
+                            )}
+                        />
+                        {errors.genero && <Text style={estilo.erro}>{errors.genero.message}</Text>}
+                    </ThemedView>
+                    
+                    <Pressable style={estilo.botao} onPress={handleSubmit(onSubmit)}><Text style={estilo.textoBotao}>Salvar</Text></Pressable>
+
+                </ThemedView>
+
+            </ScrollView>
 
         </ThemedView>
     )
@@ -272,10 +308,37 @@ const estilo = StyleSheet.create({
     pagina: {
         flex: 1,
         paddingHorizontal: 20,
+        paddingTop: 40,
     },
     subtitulo: {
         alignSelf: "center",
         marginBottom: 15,
+    },
+    subtituloInterno: {
+        marginBottom: 10,
+    },
+    secaoCamera: {
+        marginBottom: 25,
+    },
+    previewContainer: {
+        width: "100%",
+        alignItems: "center",
+        gap: 10,
+    },
+    previewImage: {
+        width: "100%",
+        height: 250,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: "rgba(150, 150, 150, 0.2)",
+    },
+    botaoTrocarFoto: {
+        padding: 10,
+    },
+    textoBotaoTrocar: {
+        color: "#0a7ea4",
+        fontWeight: "bold",
+        textDecorationLine: "underline",
     },
     caixaInput: {
         paddingBottom: 20,
@@ -307,12 +370,14 @@ const estilo = StyleSheet.create({
         borderRadius: 5,
         borderWidth: 1,
         borderColor: "rgba(150, 150, 150, 0.1)",
+        marginBottom: 30,
     },
     textoBotao: {
         fontSize: 16,
         textAlign: "center",
         alignSelf: "center",
         color: "#fff",
+        fontWeight: "600",
     },
     inputErro: {
         borderColor: "#ff4444",

@@ -4,6 +4,13 @@ export interface Conhecido {
     idade: number;
     dataConheceu: string;
     ocasiao: string;
-    anosConhece: number;
+    imagem: string;
     genero: string;
+    coordenada: {
+        id: number;
+        latitude: number;
+        longitude: number;
+        altitude: number;
+        precisao: number;
+    }
 }

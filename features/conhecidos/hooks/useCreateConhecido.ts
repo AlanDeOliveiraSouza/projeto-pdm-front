@@ -8,7 +8,20 @@ export function useCreateConhecido() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (newConhecido: {nome: string; idade: number; dataConheceu: string; anosConhece: number; ocasiao: string; genero: string}) => {
+        mutationFn: async (newConhecido: {
+            nome: string; 
+            idade: number; 
+            dataConheceu: string; 
+            ocasiao: string; 
+            genero: string; 
+            imagem: string;
+            coordenada?: {
+                latitude: number;
+                longitude: number;
+                altitude: number | null;
+                precisao: number | null;
+            }
+        }) => {
             const { data }: { data: Conhecido } = await api.post("/conhecidos/cadastrar", newConhecido,);
             console.log("Criação:", data);
             return data;
