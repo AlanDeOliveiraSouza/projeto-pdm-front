@@ -271,7 +271,7 @@ const estilo = StyleSheet.create({
         elevation: 2,
         borderRadius: 5,
         borderWidth: 1,
-        color: "#fff",
+        color: "#888",
         borderColor: "rgba(150, 150, 150, 0.1)",
     },
     textoInput: {

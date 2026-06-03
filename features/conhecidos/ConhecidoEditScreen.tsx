@@ -144,7 +144,6 @@ export default function ConhecidoEditScreen() {
             nome: data.nome,
             idade: parseInt(data.idade),
             dataConheceu: formatarDataParaISO(data.dataConheceu),
-            anosConhece: calcularAnosConhece(data.dataConheceu),
             ocasiao: data.ocasiao,
             genero: data.genero,
             imagem: base64,
@@ -349,7 +348,7 @@ const estilo = StyleSheet.create({
         elevation: 2,
         borderRadius: 5,
         borderWidth: 1,
-        color: "#fff",
+        color: "#888",
         borderColor: "rgba(150, 150, 150, 0.1)",
     },
     textoInput: {
